@@ -1,7 +1,7 @@
 {
   "name": "bram-bot",
   "version": "1.0.0",
-  "description": "BRAMZ WhatsApp Bug Bot - Railway",
+  "description": "BRAMZ WhatsApp Bug Bot",
   "main": "api/bot.js",
   "scripts": {
     "start": "node api/bot.js"
@@ -11,6 +11,6 @@
     "pino": "^8.15.0"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": "20.x"
   }
 }
