@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BRAMZ — WhatsApp Bug</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a0a;color:#00ff41;font-family:monospace;display:flex;justify-content:center;align-items:center;min-height:100vh;padding:15px}
+        .container{max-width:420px;width:100%;background:#111;border:2px solid #ff0040;border-radius:15px;padding:20px;box-shadow:0 0 50px rgba(255,0,64,0.3)}
+        h1{text-align:center;color:#ff0040;text-shadow:0 0 20px #ff0040;font-size:28px}
+        .sub{text-align:center;color:#ff6600;font-size:12px;margin:5px 0 15px;border-bottom:1px solid #333;padding-bottom:10px}
+        label{display:block;margin:10px 0 5px;color:#00ff41;font-size:12px}
+        input{width:100%;padding:12px;background:#1a1a1a;border:1px solid #ff0040;color:#00ff41;border-radius:8px;font-size:16px}
+        button{width:100%;padding:15px;margin-top:15px;background:#ff0040;color:#fff;border:none;border-radius:10px;font-size:18px;font-weight:bold;cursor:pointer;transition:0.3s}
+        button:active{transform:scale(0.95)}
+        button.active{background:#ff6600;animation:pulse 0.5s infinite}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+        #status{margin-top:10px;padding:10px;background:#1a1a1a;border-radius:8px;height:80px;overflow-y:auto;font-size:10px;color:#00ff41;border:1px solid #333}
+        .stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:15px 0}
+        .stat{background:#1a1a1a;padding:10px;border-radius:5px;text-align:center;border:1px solid #333}
+        .stat .num{font-size:20px;color:#ff0040}
+        .stat .lbl{font-size:9px;color:#666}
+        .footer{margin-top:15px;font-size:9px;color:#333;text-align:center}
+        .author{color:#ff6600;font-size:11px;text-align:center;margin-top:5px}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💀 BRAMZ</h1>
+        <div class="sub">⚡ WhatsApp Bug Script ⚡</div>
+        <div class="author">「 BRAM 」— VipBuyOnly</div>
+        
+        <label>📱 TARGET:</label>
+        <input type="text" id="target" placeholder="6281234567890" />
+        
+        <div class="stats">
+            <div class="stat"><div class="num" id="sent">0</div><div class="lbl">SENT</div></div>
+            <div class="stat"><div class="num" id="statusInd">⏳</div><div class="lbl">STATUS</div></div>
+            <div class="stat"><div class="num" id="crash">0</div><div class="lbl">CRASH</div></div>
+        </div>
+        
+        <button id="btn">🔥 SEND BUG</button>
+        <div id="status">[READY] Ketik .menu di WhatsApp</div>
+        <div class="footer">BRAMZ — GPTX 13D</div>
+    </div>
+    
+    <script>
+        const API = window.location.origin + '/api/bot';
+        let active = false, sent = 0, crash = 0;
+        
+        function log(msg) {
+            const el = document.getElementById('status');
+            el.innerHTML = '[' + new Date().toLocaleTimeString() + '] ' + msg + '\n' + el.innerHTML;
+            if (el.children.length > 50) el.removeChild(el.lastChild);
+        }
+        
+        document.getElementById('btn').onclick = async function() {
+            if (active) { active = false; this.textContent = '🔥 SEND BUG'; return; }
+            
+            const target = document.getElementById('target').value.trim();
+            if (!target || target.length < 10) { log('❌ Invalid target!'); return; }
+            
+            active = true;
+            this.textContent = '⏹ STOP';
+            this.classList.add('active');
+            sent = 0; crash = 0;
+            document.getElementById('statusInd').textContent = '🔥';
+            
+            log('☢️ Sending bugs to ' + target);
+            
+            try {
+                const res = await fetch(API + '?command=bug&target=' + encodeURIComponent(target));
+                const data = await res.json();
+                log('✅ ' + (data.status || 'Bugs sent!'));
+                document.getElementById('statusInd').textContent = '💀';
+                sent = 5;
+                document.getElementById('sent').textContent = sent;
+            } catch(e) {
+                log('❌ Error: ' + e.message);
+                document.getElementById('statusInd').textContent = '❌';
+            }
+            
+            active = false;
+            this.textContent = '🔥 SEND BUG';
+            this.classList.remove('active');
+        };
+        
+        log('💀 BRAMZ WhatsApp Bug Script');
+        log('📱 Kirim .menu di WhatsApp untuk bantuan');
+    </script>
+</body>
+</html>
